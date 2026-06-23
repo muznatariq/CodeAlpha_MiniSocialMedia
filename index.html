@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mini Social Media</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .post { background: white; border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 8px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+        .post-content { font-size: 1.2em; margin-bottom: 10px; }
+        .actions { margin-top: 10px; }
+        button { cursor: pointer; padding: 5px 10px; }
+        input { padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Connect & Share</h1>
+    
+    <div>
+        <input type="text" id="postInput" placeholder="Write a post....">
+        <button onclick="createPost()">Publish</button>
+    </div>
+
+    <div id="postsContainer"></div>
+
+    <script>
+        
+        async function createPost() {
+            const content = document.getElementById('postInput').value;
+            await fetch('/create-post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+            location.reload();
+        }
+
+        
+        async function likePost(id) {
+            await fetch(`/like/${id}`, { method: 'POST' });
+            loadPosts();
+        }
+
+        
+        async function addComment(id) {
+            const text = document.getElementById(`comment-${id}`).value;
+            await fetch(`/comment/${id}`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ text }) 
+            });
+            loadPosts();
+        }
+
+        async function loadPosts() {
+            const res = await fetch('/get-posts');
+            const posts = await res.json();
+            document.getElementById('postsContainer').innerHTML = posts.map(p => `
+                <div class="post">
+                    <p class="post-content">${p.content}</p>
+                    <p>Likes: ${p.likesCount || 0}</p>
+                    <div class="actions">
+                        <button onclick="likePost('${p._id}')">Like</button>
+                        <input type="text" id="comment-${p._id}" placeholder="Write a comment...">
+                        <button onclick="addComment('${p._id}')">Comment</button>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <strong>Comments:</strong>
+                        ${p.comments.map(c => `<li>${c.text}</li>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        loadPosts();
+    </script>
+</body>
+</html>
